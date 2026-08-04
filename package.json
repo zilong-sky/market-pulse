@@ -10,7 +10,6 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@oxc-parser/binding-win32-x64-msvc": "^0.140.0",
     "nuxt": "^3.21.10",
     "vue": "^3.5.40",
     "vue-router": "^5.2.0"
