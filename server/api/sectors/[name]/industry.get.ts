@@ -1,5 +1,5 @@
 // 行业介绍
-import { INDUSTRY_DATA } from '../../utils/industry-data'
+import { INDUSTRY_DATA } from '../../../utils/industry-data'
 
 export default defineEventHandler(async (event) => {
   const name = getRouterParam(event, 'name')
