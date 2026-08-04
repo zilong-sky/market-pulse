@@ -4,7 +4,7 @@
       <div class="text-lg font-bold">🔥 全部板块</div>
     </div>
 
-    <div v-if="loading" class="text-center py-20 text-gray-400">
+    <div v-if="state.loading && state.all.length === 0" class="text-center py-20 text-gray-400">
       <div class="animate-pulse">加载中...</div>
     </div>
 
@@ -46,24 +46,18 @@
 </template>
 
 <script setup lang="ts">
-const sectors = ref<any[]>([])
-const loading = ref(true)
+const { state, load } = useMarketData()
+
 const sortBy = ref('change')
 
+onMounted(() => { load() })
+
 const sortedSectors = computed(() => {
-  const list = [...sectors.value]
+  const list = [...state.all]
   if (sortBy.value === 'change') return list.sort((a, b) => b.change - a.change)
   if (sortBy.value === 'amount') return list.sort((a, b) => b.amount - a.amount)
   if (sortBy.value === 'upCount') return list.sort((a, b) => b.upCount - a.upCount)
   return list
-})
-
-onMounted(async () => {
-  try {
-    const res = await $fetch('/api/sectors/all')
-    if (res.code === 0) sectors.value = res.data
-  } catch (e) { console.error(e) }
-  loading.value = false
 })
 
 function formatAmount(val: number) {

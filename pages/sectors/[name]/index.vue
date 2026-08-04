@@ -6,7 +6,7 @@
     </div>
 
     <div v-if="loading" class="text-center py-20 text-gray-400">
-      <div class="animate-pulse">正在抓取数据...</div>
+      <div class="animate-pulse">加载中...</div>
     </div>
 
     <div v-else-if="sector" class="px-4 py-3 space-y-3">
@@ -22,7 +22,7 @@
       </div>
 
       <!-- 情绪+趋势 -->
-      <div class="bg-white rounded-2xl p-4">
+      <div v-if="sector.sentiment" class="bg-white rounded-2xl p-4">
         <div class="flex items-center gap-6">
           <div class="flex-1">
             <div class="text-xs text-gray-400 mb-1">情绪指数</div>
@@ -46,11 +46,11 @@
       </div>
 
       <!-- 龙头股 -->
-      <div v-if="sector.stocks?.length" class="bg-white rounded-2xl p-4">
-        <div class="text-sm font-bold text-gray-700 mb-2">👑 成分股</div>
+      <div v-if="sector.leadStocks?.length" class="bg-white rounded-2xl p-4">
+        <div class="text-sm font-bold text-gray-700 mb-2">👑 龙头股</div>
         <div class="space-y-1">
           <NuxtLink
-            v-for="stock in sector.stocks"
+            v-for="stock in sector.leadStocks"
             :key="stock.code"
             :to="`/stock/${stock.code}`"
             class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0"
@@ -129,8 +129,12 @@
         :to="`/sectors/${sector.name}/industry`"
         class="block bg-brand-50 rounded-2xl p-4 text-center"
       >
-        <span class="text-sm font-bold text-brand-600">📋 查看{{ sector.name }}行业详细介绍 →</span>
+        <span class="text-sm font-bold text-brand-600">📋 查看{{ sector.name }}行业详细介绍 -></span>
       </NuxtLink>
+    </div>
+
+    <div v-else class="text-center py-20 text-gray-400">
+      <div class="text-sm">未找到该板块数据</div>
     </div>
 
     <BottomNav />
@@ -139,16 +143,27 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { state, findSector, load } = useMarketData()
 const sector = ref<any>(null)
 const loading = ref(true)
 
 onMounted(async () => {
-  const name = route.params.name as string
-  try {
-    const res = await $fetch(`/api/sectors/${name}/detail`)
-    if (res.code === 0) sector.value = res.data
-  } catch (e) { console.error(e) }
-  loading.value = false
+  // 先确保全局数据已加载
+  await load()
+  // 从全局缓存中找
+  const name = decodeURIComponent(route.params.name as string)
+  const cached = findSector(name)
+  if (cached) {
+    sector.value = cached
+    loading.value = false
+  } else {
+    // 缓存中没有，从API拿详情
+    try {
+      const res = await $fetch(`/api/sectors/${name}/detail`)
+      if (res.code === 0) sector.value = res.data
+    } catch (e) { console.error(e) }
+    loading.value = false
+  }
 })
 
 function goBack() { navigateTo('/sectors') }
