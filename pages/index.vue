@@ -4,7 +4,16 @@
     <div class="bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-4 text-white sticky top-0 z-30">
       <div class="flex items-center justify-between">
         <div class="text-lg font-bold">📈 市场行情</div>
-        <div class="text-xs opacity-80">{{ now }}</div>
+        <div class="flex items-center gap-2">
+          <div class="text-xs opacity-80">{{ cacheTime }}</div>
+          <button
+            @click="refreshData"
+            :disabled="refreshing"
+            class="text-xs bg-white/20 hover:bg-white/30 rounded-lg px-2 py-1 transition-colors disabled:opacity-50"
+          >
+            {{ refreshing ? '⏳ 刷新中...' : '🔄 刷新' }}
+          </button>
+        </div>
       </div>
       <!-- 大盘指数 -->
       <div v-if="indices.length" class="flex gap-4 mt-2">
@@ -20,8 +29,20 @@
 
     <!-- 加载中 -->
     <div v-if="loading" class="text-center py-20 text-gray-400">
-      <div class="animate-pulse text-lg">⏳ 正在分析市场数据...</div>
-      <div class="text-xs mt-2">抓取东方财富+股吧+微博+百度+知乎+小红书</div>
+      <div class="animate-pulse text-lg">⏳ 正在加载缓存数据...</div>
+    </div>
+
+    <!-- 无数据提示 -->
+    <div v-else-if="sectors.length === 0" class="text-center py-20 text-gray-400">
+      <div class="text-lg mb-2">📊 暂无缓存数据</div>
+      <div class="text-xs mb-4">点击右上角「刷新」按钮获取最新数据</div>
+      <button
+        @click="refreshData"
+        :disabled="refreshing"
+        class="bg-brand-500 text-white text-sm rounded-xl px-6 py-2 disabled:opacity-50"
+      >
+        {{ refreshing ? '⏳ 正在抓取数据...' : '🔄 立即刷新' }}
+      </button>
     </div>
 
     <!-- 热门板块卡片 -->
@@ -42,7 +63,7 @@
               {{ sector.change >= 0 ? '+' : '' }}{{ sector.change }}%
             </span>
           </div>
-          <NuxtLink :to="`/sectors/${sector.name}`" class="text-xs text-brand-500">详情 →</NuxtLink>
+          <NuxtLink :to="`/sectors/${sector.name}`" class="text-xs text-brand-500">详情 -></NuxtLink>
         </div>
 
         <!-- 情绪指数 + 趋势 -->
@@ -136,7 +157,7 @@
             :to="`/sectors/${sector.name}/industry`"
             class="block mt-2 text-xs text-center py-2 bg-brand-50 text-brand-600 rounded-lg font-medium"
           >
-            📋 查看{{ sector.name }}行业详细介绍 →
+            📋 查看{{ sector.name }}行业详细介绍 ->
           </NuxtLink>
         </details>
       </div>
@@ -150,10 +171,17 @@
 const sectors = ref<any[]>([])
 const indices = ref<any[]>([])
 const loading = ref(true)
-const now = ref('')
+const refreshing = ref(false)
+const cacheTime = ref('')
 
 onMounted(async () => {
-  now.value = new Date().toLocaleString('zh-CN', { hour12: false })
+  await loadData()
+  // 加载完后再查一次刷新状态显示缓存时间
+  loadRefreshStatus()
+})
+
+async function loadData() {
+  loading.value = true
   try {
     const [idxRes, hotRes] = await Promise.all([
       $fetch('/api/market/indices'),
@@ -161,11 +189,51 @@ onMounted(async () => {
     ])
     if (idxRes.code === 0) indices.value = idxRes.data
     if (hotRes.code === 0) sectors.value = hotRes.data
+    if (hotRes.updatedAt) {
+      cacheTime.value = '缓存 ' + formatTime(hotRes.updatedAt)
+    }
   } catch (e) {
     console.error(e)
   }
   loading.value = false
-})
+}
+
+async function loadRefreshStatus() {
+  try {
+    const res: any = await $fetch('/api/refresh/status')
+    if (res.code === 0 && res.data?.lastRefreshTime) {
+      cacheTime.value = '缓存 ' + formatTime(res.data.lastRefreshTime)
+    }
+  } catch {}
+}
+
+async function refreshData() {
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    const res: any = await $fetch('/api/cron/refresh', { timeout: 60000 })
+    if (res.code === 0) {
+      // 刷新成功后重新加载缓存数据
+      await loadData()
+      cacheTime.value = '刚刷新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false })
+    } else {
+      alert(res.message || '刷新失败')
+    }
+  } catch (e: any) {
+    alert('刷新超时，数据量较大请稍后重试')
+  }
+  refreshing.value = false
+}
+
+function formatTime(ts: number | null): string {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const now = new Date()
+  const diff = Math.floor((now.getTime() - d.getTime()) / 1000)
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return Math.floor(diff / 60) + '分钟前'
+  return d.toLocaleTimeString('zh-CN', { hour12: false })
+}
 
 function sentimentColor(score: number) {
   if (score < 25) return 'bg-green-500'
