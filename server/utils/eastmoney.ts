@@ -7,7 +7,7 @@ const BASE_EX = 'https://push2ex.eastmoney.com'
 // 获取大盘指数
 export async function getIndices() {
   // 1.000001=上证 0.399001=深证 0.399006=创业板
-  const url = `${BASE}/api/qt/ulist.np/get?fields=f1,f2,f3,f4,f12,f14&secids=1.000001,0.399001,0.399006`
+  const url = `${BASE}/api/qt/ulist.np/get?fltt=2&fields=f1,f2,f3,f4,f12,f14&secids=1.000001,0.399001,0.399006`
   const res = await $fetch<any>(url, { timeout: 5000 })
   if (!res?.data?.diff) return []
   return res.data.diff.map((item: any) => ({

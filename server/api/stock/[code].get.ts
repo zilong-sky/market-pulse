@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const secid = code.startsWith('6') ? `1.${code}` : `0.${code}`
 
   // 实时行情
-  const quoteUrl = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f60,f62,f170,f171`
+  const quoteUrl = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fltt=2&fields=f43,f44,f45,f46,f47,f48,f50,f57,f58,f60,f62,f170,f171`
   try {
     const res = await $fetch<any>(quoteUrl, { timeout: 5000 })
     if (!res?.data) return { code: 1, message: '股票不存在' }
