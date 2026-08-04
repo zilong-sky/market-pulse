@@ -13,9 +13,9 @@ export async function getIndices() {
   return res.data.diff.map((item: any) => ({
     name: item.f14,
     code: item.f12,
-    price: item.f2 / 100,
-    change: item.f3 / 100,
-    changeAmount: item.f4 / 100
+    price: item.f2,
+    change: item.f3,
+    changeAmount: item.f4
   }))
 }
 
@@ -33,13 +33,13 @@ export async function getSectorList(): Promise<any[]> {
     const sectors = res.data.diff.map((item: any) => ({
       code: item.f12,           // 板块代码 BKxxxx
       name: item.f14,           // 板块名称
-      change: item.f3 / 100,    // 涨跌幅 %
-      turnover: item.f8 / 100,  // 换手率 %
+      change: item.f3,          // 涨跌幅 %
+      turnover: item.f8,        // 换手率 %
       amount: item.f6,          // 成交额
       upCount: item.f104,       // 上涨家数
       downCount: item.f105,     // 下跌家数
       leadStock: item.f128,     // 领涨股
-      leadChange: item.f136 ? item.f136 / 100 : 0  // 领涨股涨幅
+      leadChange: item.f136 || 0  // 领涨股涨幅
     }))
     setCache(cacheKey, sectors, 300)
     return sectors
@@ -62,8 +62,8 @@ export async function getSectorStocks(sectorCode: string, limit: number = 5): Pr
     const stocks = res.data.diff.map((item: any) => ({
       code: item.f12,
       name: item.f14,
-      price: item.f2 / 100,
-      change: item.f3 / 100,
+      price: item.f2,
+      change: item.f3,
       amount: item.f6,
       marketCap: item.f20   // 市值
     }))
@@ -113,7 +113,7 @@ export async function getSectorFundFlow(sectorCode: string) {
     const item = res.data.diff[0]
     const result = {
       mainNetInflow: item.f62,       // 主力净流入
-      mainNetInflowPct: item.f184 ? item.f184 / 100 : 0,  // 主力净流入占比
+      mainNetInflowPct: item.f184 || 0,  // 主力净流入占比
       superLargeNetInflow: item.f66, // 超大单净流入
       largeNetInflow: item.f72,      // 大单净流入
       mediumNetInflow: item.f78,     // 中单净流入
